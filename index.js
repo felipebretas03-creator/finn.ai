@@ -307,9 +307,9 @@ async function handleChat(ctx, userId, userText) {
     }
 }
 
-bot.on('message', async (ctx) => {
+bot.on('text', async (ctx) => {
     try {
-        console.log("MENSAGEM RECEBIDA DO TELEGRAM: ", ctx.message.text || "(imagem/audio)");
+        console.log("MENSAGEM RECEBIDA DO TELEGRAM: ", ctx.message.text);
         if (ctx.message.text && ctx.message.text.startsWith('/')) return;
         const userId = ctx.from.id;
         const userMessage = ctx.message.text;
