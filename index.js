@@ -247,6 +247,9 @@ async function handleChat(ctx, userId, userText) {
                         const res = await db.registrarTransacao(userId.toString(), args.tipo, args.valor, args.descricao, args.data, args.categoria, args.estabelecimento, args.metodo_pagamento);
                         const est = await db.obterEstatisticasMes(userId.toString());
                         toolResult = { sucesso: true, transacao_id: res.id, estatisticas_mes: est };
+                        if (res.alerta_meta) {
+                            toolResult.alerta_meta = res.alerta_meta;
+                        }
                     } else if (toolCall.function.name === 'gerenciar_meta') {
                         toolResult = await db.gerenciarMeta(userId.toString(), args.acao, args.nome, args.valor_alvo, args.valor_investido);
                     } else if (toolCall.function.name === 'gerenciar_divida') {
@@ -278,7 +281,8 @@ async function handleChat(ctx, userId, userText) {
 
             response = await openai.chat.completions.create({
                 model: "openai/gpt-4o-mini",
-                messages: userHistories[userId]
+                messages: userHistories[userId],
+                tools: tools
             });
 
             responseMessage = response.choices[0].message;
