@@ -72,7 +72,27 @@ async function registrarTransacao(userId, tipo, valor, descricao, data, categori
         else saldo -= row.valor;
     }
     
-    return { id: insertData[0].id, sucesso: true, saldo_atual: saldo };
+    const resultado = { id: insertData[0].id, sucesso: true, saldo_atual: saldo };
+    
+    // Fase 5: Metas Inteligentes (Interceptação Ativa)
+    if (tipo === 'despesa') {
+        const { data: metas } = await supabase
+            .from('metas')
+            .select('nome, valor_alvo, valor_atual')
+            .eq('user_id', userId);
+            
+        if (metas && metas.length > 0) {
+            const metasAtivas = metas.filter(m => m.valor_atual < m.valor_alvo);
+            if (metasAtivas.length > 0) {
+                const previsao = await analisarPrevisaoCaixa(userId);
+                if (previsao && previsao.sucesso && previsao.status_previsao === 'NEGATIVO') {
+                    resultado.alerta_meta = `⚠️ ALERTA DE META: Com essa despesa, a previsão matemática do mês ficou NEGATIVA (R$ ${previsao.saldo_final_estimado.toFixed(2)}). Suas metas, como '${metasAtivas[0].nome}', estão ameaçadas! O ASSISTENTE IA DEVE DAR UMA BRONCA NO USUÁRIO E ALERTAR SOBRE A META NA RESPOSTA.`;
+                }
+            }
+        }
+    }
+    
+    return resultado;
 }
 
 async function obterRelatorio(userId) {

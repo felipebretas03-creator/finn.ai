@@ -150,7 +150,15 @@ const tools = [
     type: "function",
     function: {
       name: "limpar_dados",
-      description: "Apaga todo o histórico e a conta do usuário (incluindo onboarding).",
+      description: "Apaga todos os dados do usuário, util caso ele peça para recomeçar ou limpar a conta.",
+      parameters: { type: "object", properties: {} }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "analisar_previsao_caixa",
+      description: "Calcula a projeção matemática de gastos para o fim do mês, indicando se o usuário vai fechar no azul ou no vermelho baseado na média diária.",
       parameters: { type: "object", properties: {} }
     }
   }
@@ -252,6 +260,8 @@ async function handleChat(ctx, userId, userText) {
                     } else if (toolCall.function.name === 'limpar_dados') {
                         const res = await db.limparDados(userId.toString());
                         toolResult = { sucesso: true, registros_removidos: res.removidos, instrucao: "Diga que tudo foi apagado." };
+                    } else if (toolCall.function.name === 'analisar_previsao_caixa') {
+                        toolResult = await db.analisarPrevisaoCaixa(userId.toString());
                     }
                 } catch (e) {
                     toolResult = { sucesso: false, erro: e.message };
