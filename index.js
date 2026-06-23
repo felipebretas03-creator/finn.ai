@@ -307,10 +307,16 @@ async function handleChat(ctx, userId, userText) {
     }
 }
 
-bot.on('text', async (ctx) => {
-    const userId = ctx.from.id;
-    const userMessage = ctx.message.text;
-    await handleChat(ctx, userId, userMessage);
+bot.on('message', async (ctx) => {
+    try {
+        console.log("MENSAGEM RECEBIDA DO TELEGRAM: ", ctx.message.text || "(imagem/audio)");
+        if (ctx.message.text && ctx.message.text.startsWith('/')) return;
+        const userId = ctx.from.id;
+        const userMessage = ctx.message.text;
+        await handleChat(ctx, userId, userMessage);
+    } catch (e) {
+        console.error(e);
+    }
 });
 
 bot.on('voice', async (ctx) => {
