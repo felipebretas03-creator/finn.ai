@@ -100,16 +100,25 @@ async function obterEstatisticasMes(userId) {
 
     let receitas = 0;
     let despesas = 0;
+    let salarioRecebido = 0;
+    let receitasExtras = 0;
     let gastosPorCategoria = {};
     
     for (let row of rows) {
-        if (row.tipo === 'receita') receitas += row.valor;
-        else {
+        if (row.tipo === 'receita') {
+            receitas += row.valor;
+            const cat = (row.categoria || '').toLowerCase();
+            if (cat.includes('salário') || cat.includes('salario') || cat.includes('pagamento')) {
+                salarioRecebido += row.valor;
+            } else {
+                receitasExtras += row.valor;
+            }
+        } else {
             despesas += row.valor;
             gastosPorCategoria[row.categoria] = (gastosPorCategoria[row.categoria] || 0) + row.valor;
         }
     }
-    return { receitas, despesas, gastosPorCategoria, saldo: receitas - despesas };
+    return { receitas, despesas, salarioRecebido, receitasExtras, gastosPorCategoria, saldo: receitas - despesas };
 }
 
 async function obterResumoDoDia() {
@@ -255,6 +264,48 @@ async function diagnosticoCompleto(userId) {
     }
 }
 
+async function analisarPrevisaoCaixa(userId) {
+    try {
+        const cadastro = await obterCadastro(userId);
+        if (!cadastro) return { erro: "Usuário não possui cadastro." };
+
+        const estatisticas = await obterEstatisticasMes(userId);
+        
+        const hoje = new Date();
+        const diaAtual = hoje.getDate();
+        const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+        
+        const mediaGastoDiario = estatisticas.despesas / diaAtual;
+        const diasRestantes = diasNoMes - diaAtual;
+        
+        const projecaoGastosRestantes = mediaGastoDiario * diasRestantes;
+        const totalGastosEstimado = estatisticas.despesas + projecaoGastosRestantes;
+        
+        // Se o salário já caiu, consideramos o que caiu (se for maior). Se não caiu, consideramos a promessa (cadastro).
+        const rendaFixaGarantida = Math.max(cadastro.salario || 0, estatisticas.salarioRecebido || 0);
+        const rendaTotal = rendaFixaGarantida + (estatisticas.receitasExtras || 0);
+        const saldoFinalEstimado = rendaTotal - totalGastosEstimado;
+        
+        return {
+            sucesso: true,
+            salario_cadastrado: cadastro.salario,
+            salario_ja_recebido_este_mes: estatisticas.salarioRecebido,
+            receitas_extras_este_mes: estatisticas.receitasExtras,
+            renda_total_projetada_do_mes: rendaTotal,
+            despesas_mes_ate_agora: estatisticas.despesas,
+            dia_atual: diaAtual,
+            dias_no_mes: diasNoMes,
+            media_gasto_diario: mediaGastoDiario,
+            projecao_gastos_restantes: projecaoGastosRestantes,
+            total_gastos_estimado_fim_do_mes: totalGastosEstimado,
+            saldo_final_estimado: saldoFinalEstimado,
+            status_previsao: saldoFinalEstimado >= 0 ? "POSITIVO" : "NEGATIVO"
+        };
+    } catch (e) {
+        return { erro: e.message };
+    }
+}
+
 module.exports = {
     registrarTransacao,
     obterRelatorio,
@@ -266,5 +317,6 @@ module.exports = {
     gerenciarMeta,
     gerenciarDivida,
     adicionarPontos,
-    diagnosticoCompleto
+    diagnosticoCompleto,
+    analisarPrevisaoCaixa
 };
