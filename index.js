@@ -319,6 +319,45 @@ bot.on('voice', async (ctx) => {
     }
 });
 
+bot.on('photo', async (ctx) => {
+    const userId = ctx.from.id;
+    try {
+        await ctx.reply("📸 Analisando a sua nota fiscal... Aguarde um segundo!");
+        await ctx.sendChatAction('typing');
+        
+        // Pega a foto de maior resolução enviada
+        const photos = ctx.message.photo;
+        const highestResPhoto = photos[photos.length - 1];
+        const fileId = highestResPhoto.file_id;
+        
+        const fileLink = await ctx.telegram.getFileLink(fileId);
+        const response = await fetch(fileLink.href);
+        const arrayBuffer = await response.arrayBuffer();
+        const base64Data = Buffer.from(arrayBuffer).toString('base64');
+        
+        const imagePart = { inlineData: { data: base64Data, mimeType: 'image/jpeg' } };
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const prompt = `Analise esta imagem, que é provavelmente um recibo, nota fiscal ou comprovante. 
+Extraia o valor total gasto e tente descobrir o que foi comprado ou o nome do estabelecimento. 
+Retorne APENAS uma frase simples e direta, como se fosse o usuário falando, por exemplo:
+'Gastei R$ 45.90 no Supermercado Extra' ou 'Comprei um lanche de R$ 32.00 no Restaurante da Esquina'. 
+Se for um comprovante de pix recebido (receita), diga 'Recebi R$ 50 do João'.
+Não adicione mais nenhuma explicação nem formatação, apenas a frase curta.`;
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const textoExtraido = result.response.text().trim();
+        
+        await ctx.reply(`🔍 Eu entendi isso do recibo:\n_"${textoExtraido}"_\n\nRegistrando automaticamente para você...`);
+        
+        // Passa a frase extraída para o cérebro principal do bot (GPT) fazer o registro e gamificação
+        await handleChat(ctx, userId, textoExtraido);
+    } catch (error) {
+        console.error("Erro ao processar imagem:", error.message || error);
+        ctx.reply("Puxa, não consegui ler muito bem essa imagem. Pode tentar digitar o valor para mim?");
+    }
+});
+
 cron.schedule('0 20 * * *', async () => {
     console.log("Executando o Resumo Diário...");
     try {
