@@ -251,8 +251,7 @@ async function handleChat(ctx, userId, userText) {
                         toolResult = await db.obterRelatorio(userId.toString());
                     } else if (toolCall.function.name === 'limpar_dados') {
                         const res = await db.limparDados(userId.toString());
-                        toolResult = { sucesso: true, registros_removidos: res.removidos };
-                        delete userHistories[userId]; 
+                        toolResult = { sucesso: true, registros_removidos: res.removidos, instrucao: "Diga que tudo foi apagado." };
                     }
                 } catch (e) {
                     toolResult = { sucesso: false, erro: e.message };
