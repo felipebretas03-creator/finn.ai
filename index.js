@@ -341,7 +341,7 @@ bot.on('photo', async (ctx) => {
         
         const imagePart = { inlineData: { data: base64Data, mimeType: 'image/jpeg' } };
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const userName = ctx.from.first_name + (ctx.from.last_name ? " " + ctx.from.last_name : "");
         const legenda = ctx.message.caption ? `O usuário também enviou este texto junto: "${ctx.message.caption}".\n` : "";
         
