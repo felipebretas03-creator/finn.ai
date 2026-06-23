@@ -275,16 +275,21 @@ async function handleChat(ctx, userId, userText) {
             responseMessage = response.choices[0].message;
         }
 
-        const responseText = responseMessage.content;
+        const responseText = responseMessage.content || "";
         userHistories[userId] = userHistories[userId] || [{ role: "system", content: promptAtivo }];
-        userHistories[userId].push({ role: "assistant", content: responseText });
-
-        const mensagens = responseText.split('\\n\\n').filter(m => m.trim().length > 0);
-        for (const msg of mensagens) {
-            await ctx.reply(msg.trim());
+        
+        if (responseText.trim().length > 0) {
+            userHistories[userId].push({ role: "assistant", content: responseText });
+            const mensagens = responseText.split('\n\n').filter(m => m.trim().length > 0);
+            for (const msg of mensagens) {
+                await ctx.reply(msg.trim());
+            }
         }
     } catch (error) {
         console.error("Erro no bot:", error.message || error);
+        if (error.response) {
+            console.error("Detalhes do erro:", JSON.stringify(error.response.data, null, 2));
+        }
         ctx.reply("Desculpe, tive um probleminha técnico no momento. Pode tentar novamente em alguns segundos?");
     }
 }
