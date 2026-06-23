@@ -341,17 +341,20 @@ bot.on('photo', async (ctx) => {
         
         const imagePart = { inlineData: { data: base64Data, mimeType: 'image/jpeg' } };
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const userName = ctx.from.first_name + (ctx.from.last_name ? " " + ctx.from.last_name : "");
-        const legenda = ctx.message.caption ? `O usuário enviou este texto junto com a foto: "${ctx.message.caption}".` : "";
+        const legenda = ctx.message.caption ? `O usuário também enviou este texto junto: "${ctx.message.caption}".\n` : "";
         
-        const prompt = `Analise esta imagem, que é provavelmente um recibo, nota fiscal ou comprovante. 
+        const prompt = `Você é um leitor de comprovantes. 
+O nome do dono da conta é "${userName}". 
 ${legenda}
-MUITO IMPORTANTE: O nome do dono desta conta é "${userName}". 
-Verifique se o comprovante é de um pagamento feito PELO usuário (Despesa) ou PARA o usuário (Receita). Se o comprovante disser que o Recebedor/Destinatário é ${userName} (ou tiver o nome parecido), ou se a legenda indicar uma venda/recebimento, é uma RECEITA!
-- Se for uma RECEITA (entrada de dinheiro), retorne APENAS: 'Recebi R$ [valor] de [nome da pessoa/empresa que pagou]'.
-- Se for uma DESPESA (gasto), extraia o valor total e o estabelecimento, e retorne APENAS: 'Gastei R$ [valor] no [estabelecimento]'.
-Retorne APENAS a frase curta e direta, sem adicionar formatação, aspas ou explicações.`;
+Analise a imagem e determine:
+1. É uma RECEITA (dinheiro recebido) ou DESPESA (dinheiro pago)? Dica: Se o 'Recebedor', 'Destinatário' ou 'Favorecido' for o próprio ${userName}, é uma RECEITA.
+2. Qual o valor exato?
+3. Quem é a outra parte (quem pagou ou quem recebeu)?
+
+Retorne APENAS uma frase neste formato (sem aspas ou formatação):
+"Comprovante de [RECEITA ou DESPESA] no valor de R$ [valor] envolvendo [nome da outra parte]"`;
 
         const result = await model.generateContent([prompt, imagePart]);
         const textoExtraido = result.response.text().trim();
